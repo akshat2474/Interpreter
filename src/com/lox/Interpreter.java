@@ -1,5 +1,6 @@
 package com.lox;
 
+import java.io.IOException; // Already here from last time
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +33,49 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             @Override
             public String toString() { return "<native fn>"; }
         });
+
+        // --- MODIFIED NATIVE FUNCTION ---
+        globals.define("runGame", new LoxCallable() {
+            @Override
+            public int arity() {
+                return 0; // <-- CHANGED (from 1 to 0)
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                // --- CHANGED ---
+                // We no longer get the path from the arguments list.
+                // We hard-code it directly as a string.
+                String path = "Tetris/game";
+                // --- END OF CHANGE ---
+
+                try {
+                    // Use ProcessBuilder to prepare the command
+                    ProcessBuilder pb = new ProcessBuilder(path);
+
+                    // This makes the game's console output appear in your Java console
+                    pb.inheritIO();
+                    
+                    // Start the process
+                    Process process = pb.start();
+
+                    // PAUSE the Lox script and wait for the game to be closed
+                    int exitCode = process.waitFor();
+
+                    // Return the game's exit code to Lox
+                    return (double)exitCode; // Lox uses doubles for all numbers
+
+                } catch (IOException e) {
+                    throw new RuntimeError(null, "Failed to start process: " + e.getMessage());
+                } catch (InterruptedException e) {
+                    throw new RuntimeError(null, "Process was interrupted: " + e.getMessage());
+                }
+            }
+            
+            @Override
+            public String toString() { return "<native fn runGame>"; }
+        });
+        // --- END OF MODIFIED FUNCTION ---
     }
 
     /**
